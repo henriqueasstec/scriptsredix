@@ -299,6 +299,20 @@ try {
         Write-Host -ForegroundColor Red "Erro para descomprimir arquivos em $SentinelaAgentFolder, valide as permissões ou locks no diretório"
         exit
  }
+
+    # Restaura redixdef.ps1 customizado da instalação anterior, se existir
+    $oldRedixDef = "C:\Program Files\Sentinela_old\custom\sql_server\etc\redixdef.ps1"
+    if (Test-Path $oldRedixDef) {
+        Write-Host -ForegroundColor Green "Restaurando redixdef.ps1 customizado da instalação anterior"
+        try {
+            Copy-Item -Path $oldRedixDef -Destination "$sqletcDir\redixdef.ps1" -Force
+        } catch {
+            Write-Host -ForegroundColor Red "Falha ao restaurar redixdef.ps1 customizado, valide manualmente em $oldRedixDef"
+        }
+    } else {
+        Write-Host -ForegroundColor Yellow "Nenhum redixdef.ps1 customizado encontrado na instalação anterior, mantendo padrão do pacote"
+    }
+
     Write-Host -ForegroundColor Green "Iniciando atualização de Scripts SQL SERVER"
     try{
         . $binDir\sentinela_update.ps1 -redixpass $redixpass -SqlServer
