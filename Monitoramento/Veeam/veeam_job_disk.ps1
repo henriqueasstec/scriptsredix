@@ -493,6 +493,7 @@ foreach ($JOB in $JOBS) {
             Result                     = $JOBSESSION.Result
             RuntimeSeconds             = $RuntimeSeconds
             StorageDetail              = $StorageDetail
+            JobType                    = $JOB.TypeToString
         }
     }
 }

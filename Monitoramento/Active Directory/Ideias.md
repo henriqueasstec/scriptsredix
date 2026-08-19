@@ -26,7 +26,7 @@ Documento consiste em documentar ideias que surgem para alertas em controlador d
     * X quantidade em X tempo:
         * 4771 — falha na pré-autenticação Kerberos
         * 4777 — falha na validação de credenciais NTLM
-        * 4740 — conta de usuário bloqueada
+        * Verificar motivo — conta de usuário bloqueada
 * Patches de segurança sem aplicar nos últimos X dias
     * OBS: Talvez enquadre um monitoramento incluso no padrão dos servidores Windows
 * SMB 1.0 habilitado
@@ -38,3 +38,7 @@ Documento consiste em documentar ideias que surgem para alertas em controlador d
 * NTDM habilitado
 * LSASS / LSA protection desabilitada
 * Contas com Kerberos preauthentication desabilitada
+* krbgt redefinir a senha após coleta de informações do ataque
+
+
+* Patches de segurança sem aplicar nos últimos X dias

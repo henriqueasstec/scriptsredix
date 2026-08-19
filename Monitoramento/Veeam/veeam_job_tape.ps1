@@ -96,7 +96,7 @@ foreach ($TAPEJOB in $TAPEJOBS) {
             JobName          = $JOBSESSION.JobName
             ScheduleEnabled  = $TAPEJOB.Enabled
             Platform         = $JOBSESSION.Platform
-            JobTypeString    = $JOBSESSION.JobTypeString
+            JobType          = $JOBSESSION.JobTypeString
             CreationTime     = $JOBSESSION.CreationTime
             EndTime          = $JOBSESSION.EndTime
             State            = $JOBSESSION.State

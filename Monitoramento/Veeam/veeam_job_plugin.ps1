@@ -426,7 +426,7 @@ foreach ($PLUGINJOB in $PLUGINJOBS) {
             JobName         = $JOBSESSION.JobName
             ScheduleEnabled = $PLUGINJOB.IsEnabled
             Platform        = $JOBSESSION.Platform
-            JobTypeString   = $JOBSESSION.JobTypeString
+            JobType         = $JOBSESSION.JobTypeString
             CreationTime    = $JOBSESSION.CreationTime
             EndTime         = $JOBSESSION.EndTime
             State           = $JOBSESSION.State
