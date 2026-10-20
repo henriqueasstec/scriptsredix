@@ -35,7 +35,13 @@ try {
     }
 
     # Encontra o executavel pelo PATH
-    $PowerShell = (Get-Command $Executavel -CommandType Application -ErrorAction Stop).Source
+    $Comando = Get-Command $Executavel -CommandType Application -ErrorAction SilentlyContinue
+
+    if (-not $Comando) {
+        throw "$Executavel nao encontrado no PATH do Windows."
+    }
+
+    $PowerShell = $Comando.Source
 
     # Valida a versao do PowerShell 7 pela versao do executavel
     if ($Versao -ge 13) {
@@ -62,7 +68,7 @@ try {
         [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
     }
 
-    # Repassa a saida diretamente ao Zabbix, sem capturar 2>&1
+    # Repassa a saida ao Zabbix
     $Etapa = "Execucao da coleta"
     & $PowerShell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $ScriptPath
 
