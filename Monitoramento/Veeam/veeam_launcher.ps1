@@ -21,9 +21,11 @@ try {
     }
 
     $VeeamExe = Join-Path $CorePath 'Veeam.Backup.Service.exe'
-    $Versao = (Get-Item -LiteralPath $VeeamExe).VersionInfo.FileMajorPart
+    $InfoVeeam = (Get-Item -LiteralPath $VeeamExe).VersionInfo
+    $Versao = $InfoVeeam.FileMajorPart
+    $VersaoMenor = $InfoVeeam.FileMinorPart
 
-    # Define qual PowerShell utilizar conforme a versao do Veeam
+    # Seleciona o PowerShell conforme a versao do Veeam
     $Etapa = "Identificacao do PowerShell"
 
     if ($Versao -ge 13) {
@@ -32,21 +34,43 @@ try {
         $Executavel = "powershell.exe"
     }
 
-    # Localiza o executavel pelo PATH do Windows
+    # Encontra o executavel pelo PATH
     $PowerShell = (Get-Command $Executavel -CommandType Application -ErrorAction Stop).Source
 
-    # Executa o script de coleta
-    $Etapa = "Execucao da coleta"
-    $Saida = & $PowerShell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $ScriptPath 2>&1
+    # Valida a versao do PowerShell 7 pela versao do executavel
+    if ($Versao -ge 13) {
+        $Etapa = "Validacao da versao do PowerShell"
+        $InfoPS = (Get-Item -LiteralPath $PowerShell).VersionInfo
+        $VersaoPS = [version]::new(
+            $InfoPS.ProductMajorPart,
+            $InfoPS.ProductMinorPart,
+            $InfoPS.ProductBuildPart
+        )
 
-    if ($LASTEXITCODE -ne 0) {
-        throw "Falha na coleta (codigo $LASTEXITCODE): $(($Saida | Out-String).Trim())"
+        # Requisitos: Veeam 13.0 e Veeam 13.1.1
+        if ($Versao -eq 13 -and $VersaoMenor -eq 0) {
+            $VersaoMinima = [version]'7.4.13'
+        } else {
+            $VersaoMinima = [version]'7.6.3'
+        }
+
+        if ($VersaoPS -lt $VersaoMinima) {
+            throw "Veeam $Versao.$VersaoMenor requer PowerShell $VersaoMinima ou superior. Encontrado: $VersaoPS ($PowerShell)"
+        }
+
+        # PowerShell 7 escreve UTF-8; configura o launcher para decodificar corretamente.
+        [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
     }
 
-    # Retorna o resultado original ao Zabbix
-    $Saida
-    exit 0
+    # Repassa a saida diretamente ao Zabbix, sem capturar 2>&1
+    $Etapa = "Execucao da coleta"
+    & $PowerShell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $ScriptPath
 
+    if ($LASTEXITCODE -ne 0) {
+        throw "Falha na coleta $Script (codigo $LASTEXITCODE) utilizando $PowerShell"
+    }
+
+    exit 0
 }
 catch {
     Write-Output "SENTINELA_ERROR [$Etapa] [$Script]: $($_.Exception.Message)"
