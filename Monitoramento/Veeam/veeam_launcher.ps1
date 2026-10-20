@@ -1,29 +1,54 @@
-param([string]$Script)
+param([Parameter(Mandatory = $true)][string]$Script)
 
 $ErrorActionPreference = "Stop"
+$Etapa = "Inicializacao"
 
-# Identifica a versão do Veeam
-$CorePath = (Get-ItemProperty 'HKLM:\SOFTWARE\Veeam\Veeam Backup and Replication').CorePath
-$Versao = (Get-Item (Join-Path $CorePath 'Veeam.Backup.Service.exe')).VersionInfo.FileMajorPart
+try {
+    # Verifica se o script de coleta existe
+    $Etapa = "Validacao do script"
+    $ScriptPath = Join-Path $PSScriptRoot $Script
 
-# Seleciona o PowerShell pelo registro
-if ($Versao -ge 13) {
+    if (-not (Test-Path -LiteralPath $ScriptPath -PathType Leaf)) {
+        throw "Script nao encontrado: $ScriptPath"
+    }
 
-    $Reg = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\PowerShellCore\InstalledVersions\31ab5147-9a97-4452-8443-d9709f0516e1'
-    $PS = Join-Path $Reg.InstallLocation 'pwsh.exe'
+    # Identifica a versao do Veeam pelo executavel
+    $Etapa = "Identificacao do Veeam"
+    $CorePath = (Get-ItemProperty 'HKLM:\SOFTWARE\Veeam\Veeam Backup and Replication').CorePath
 
-} else {
+    if (-not $CorePath) {
+        throw "Caminho de instalacao do Veeam nao encontrado."
+    }
 
-    $Reg = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\PowerShell\3\PowerShellEngine'
-    $PS = Join-Path $Reg.ApplicationBase 'powershell.exe'
+    $VeeamExe = Join-Path $CorePath 'Veeam.Backup.Service.exe'
+    $Versao = (Get-Item -LiteralPath $VeeamExe).VersionInfo.FileMajorPart
+
+    # Define qual PowerShell utilizar conforme a versao do Veeam
+    $Etapa = "Identificacao do PowerShell"
+
+    if ($Versao -ge 13) {
+        $Executavel = "pwsh.exe"
+    } else {
+        $Executavel = "powershell.exe"
+    }
+
+    # Localiza o executavel pelo PATH do Windows
+    $PowerShell = (Get-Command $Executavel -CommandType Application -ErrorAction Stop).Source
+
+    # Executa o script de coleta
+    $Etapa = "Execucao da coleta"
+    $Saida = & $PowerShell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $ScriptPath 2>&1
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "Falha na coleta (codigo $LASTEXITCODE): $(($Saida | Out-String).Trim())"
+    }
+
+    # Retorna o resultado original ao Zabbix
+    $Saida
+    exit 0
 
 }
-
-# Verifica se o PowerShell existe
-if (-not (Test-Path $PS)) {
-    throw "PowerShell nao encontrado: $PS"
+catch {
+    Write-Output "SENTINELA_ERROR [$Etapa] [$Script]: $($_.Exception.Message)"
+    exit 1
 }
-
-# Executa a coleta
-& $PS -NoProfile -NonInteractive -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot $Script)
-exit $LASTEXITCODE
